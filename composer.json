@@ -1,0 +1,39 @@
+{
+    "name": "richard87/api-route",
+    "description": "ApiRoute annotation that introspects your code and generates controllers, specifications, and can even generate frontend code!",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Richard87\\ApiRoute\\": "src/ApiRoute/",
+            "Richard87\\ApiRouteBundle\\": "src/ApiRouteBundle/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Richard87\\ApiRoute\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Richard Hagen",
+            "email": "richard.hagen@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.0",
+        "doctrine/inflector": "2.*",
+        "symfony/http-kernel": "5.*",
+        "symfony/config": "5.*",
+        "symfony/dependency-injection": "5.*",
+        "symfony/routing": "5.*"
+    },
+    "require-dev": {
+        "symfony/phpunit-bridge": "5.*",
+        "phpunit/phpunit": "9.5.4"
+    },
+    "scripts": {
+        "tests": "./vendor/bin/phpunit"
+    }
+}

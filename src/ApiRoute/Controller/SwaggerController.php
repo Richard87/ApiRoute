@@ -2,14 +2,10 @@
 
 namespace Richard87\ApiRoute\Controller;
 
-use Richard87\ApiRoute\Service\OpenApiGenerator;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouterInterface;
 
-class IndexController extends AbstractController
+class SwaggerController
 {
     private const SWAGGER_HTML = <<<EOT
         <!DOCTYPE html>
@@ -36,19 +32,13 @@ class IndexController extends AbstractController
         </html>
         EOT;
 
+    public function __construct(
+        private RouterInterface $router,
+    ){}
 
-
-
-    #[Route('/docs.json', name: 'api')]
-    public function api(OpenApiGenerator $openApiGenerator): Response
+    public function __invoke(): Response
     {
-        return new JsonResponse($openApiGenerator->getDefinition());
-    }
-
-    #[Route('/', name: 'swagger')]
-    public function swagger(): Response
-    {
-        $docsUrl = $this->generateUrl('api', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $docsUrl = $this->router->generate("_api_route_openapi_endpoint", [], RouterInterface::ABSOLUTE_URL);
         return new Response(sprintf(self::SWAGGER_HTML,$docsUrl));
     }
 

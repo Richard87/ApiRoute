@@ -9,6 +9,14 @@
             <argument type="collection"/>
         </service>
 
+        <service id="api_route.openapi_controller" class="Richard87\ApiRoute\Controller\OpenApiController" public="true">
+            <argument type="service" id="api_route.openapi_generator"/>
+            <argument type="service" id="event_dispatcher" on-invalid="null" />
+        </service>
+        <service id="api_route.swagger_controller" class="Richard87\ApiRoute\Controller\OpenApiController" public="true">
+            <argument type="service" id="router" />
+        </service>
+
         <service id="Richard87\ApiRoute\Service\OpenApiGenerator" alias="api_route.openapi_generator" public="false" />
     </services>
 </container>
