@@ -17,12 +17,7 @@ class Configuration implements ConfigurationInterface
 
         $rootNode->children()
             ->scalarNode("base_path")->defaultValue("/api")->end()
-            ->booleanNode("swagger")->defaultTrue()->end()
-            ->arrayNode("resources")
-                ->info("List of paths to find ApiRoute annotations")
-                ->defaultValue(["../src/"])
-                ->scalarPrototype()->end()
-                ->end()
+            ->booleanNode("enable_swagger")->defaultTrue()->end()
             ->arrayNode("openapi")
                 ->info("OpenAPI Information")
                 ->children()

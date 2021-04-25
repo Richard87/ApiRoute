@@ -21,6 +21,12 @@ class ApiRouteExtension extends Extension
         $config = $this->processConfiguration($configuration, $configs);
 
         $definition = $container->getDefinition("api_route.openapi_generator");
-        $definition->setArgument("\$info", $config['openapi']);
+        $definition->setArgument('$info', $config['openapi']);
+
+        $definition = $container->getDefinition("api_route.api_route_loader");
+        $definition->setArgument('$basePath', $config['base_path']);
+        $definition->setArgument('$enableSwagger', $config['enable_swagger']);
+        $definition->setArgument('$projectDir', $container->getParameter("kernel.project_dir"));
+        // $definition->addTag("routing.loader");
     }
 }

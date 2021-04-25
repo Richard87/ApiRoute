@@ -4,35 +4,35 @@
 namespace Richard87\ApiRoute\Service;
 
 
-use Richard87\ApiRoute\Attributes\Collection;
-use Symfony\Component\Finder\Finder;
-use Symfony\Component\Finder\SplFileInfo;
-
 class FindClassDescriptors
 {
     /**
-     * @param array|string $paths
+     * @param string $path
      * @return ClassDescriptor[]
      */
-    public function findAttributes(array|string $paths): array
+    public function findAttributes(string $path): array
     {
-        $finder = new Finder();
-        $finder->files()->in($paths);
-        $results = [];
 
-        /** @var SplFileInfo $file */
-        foreach ($finder as $file) {
-            if (!$file->isFile()) {
+        $it = new \RecursiveDirectoryIterator($path, \FilesystemIterator::KEY_AS_PATHNAME | \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS);
+        $files = new \RecursiveIteratorIterator($it, \RecursiveIteratorIterator::CHILD_FIRST);
+
+        $results = [];
+        /** @var \SplFileInfo $fileInfo */
+        foreach ($files as $path => $fileInfo) {
+            if ($fileInfo->isDir()) {
                 continue;
             }
 
-            $class = $this->findClass($file->getRealPath());
+            if ($fileInfo->getExtension() !== "php") {
+                continue;
+            }
+
+            $class = $this->findClass($path);
             if (!$class) {
                 continue;
             }
 
             $classDescriptor = new ClassDescriptor($class);
-
             if (!$classDescriptor->hasActions()) {
                 continue;
             }

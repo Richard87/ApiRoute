@@ -3,7 +3,7 @@
 namespace Richard87\ApiRoute\Tests\Service;
 
 use PHPUnit\Framework\TestCase;
-use Richard87\ApiRoute\Service\ApiLoader;
+use Richard87\ApiRoute\Service\ApiRouteLoader;
 use Richard87\ApiRoute\Service\FindClassDescriptors;
 use Richard87\ApiRoute\Service\OpenApiGenerator;
 use Symfony\Component\Routing\RouterInterface;
@@ -14,7 +14,7 @@ class OpenApiGeneratorTest extends TestCase
 
     protected function setUp(): void
     {
-        $apiLoader = new ApiLoader(new FindClassDescriptors());
+        $apiLoader = new ApiRouteLoader(new FindClassDescriptors());
         $routeCollection = $apiLoader->load(__DIR__ . "/../../src");
         $mockRouter = $this->createMock(RouterInterface::class);
         $mockRouter->method("getRouteCollection")->willReturn($routeCollection);
