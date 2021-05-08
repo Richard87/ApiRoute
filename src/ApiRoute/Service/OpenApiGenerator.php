@@ -4,6 +4,7 @@
 namespace Richard87\ApiRoute\Service;
 
 
+use Symfony\Component\Config\Loader\DelegatingLoader;
 use Symfony\Component\Routing\RouterInterface;
 
 class OpenApiGenerator
@@ -12,12 +13,11 @@ class OpenApiGenerator
     public const SCHEMA_ATTR = "_api_route_schema";
     public const REFS_ATTR = "_api_route_refs";
 
-    private RouterInterface $router;
-
-    public function __construct(RouterInterface $router, array $info)
-    {
-        $this->router = $router;
-    }
+    public function __construct(
+        private RouterInterface $router,
+        private array $info,
+        private string $basePath
+    ){}
 
     public function getDefinition(): array
     {
@@ -60,11 +60,8 @@ class OpenApiGenerator
 
         return [
             "openapi" => "3.0.0",
-            "basePath" => "",
-            "info" => [
-                "title" => "ApiRoute API",
-                "version" => "0.0.1",
-            ],
+            "basePath" => $this->basePath,
+            "info" => $this->info,
             "version" => "3",
             "paths" => $paths,
             "components" => [

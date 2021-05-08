@@ -16,15 +16,10 @@ class ApiRouteLoader extends Loader
     public function __construct(
         private FindClassDescriptors $findClassDescriptors,
         private string $basePath,
+        private string $docsEndpoint,
         private bool $enableSwagger,
         private string $projectDir,
-    )
-    {
-        if (str_ends_with($this->basePath,"/")) {
-            $this->basePath = substr($this->basePath, 0, -1);
-        }
-    }
-
+    ){}
 
     public function load($path, string $type = null): RouteCollection
     {
@@ -37,7 +32,7 @@ class ApiRouteLoader extends Loader
         $routeCollection = new RouteCollection();
         if (false === $this->isLoaded) {
             $routeCollection->add("_api_route_openapi_endpoint",new Route(
-                $this->basePath . "/docs.json",
+                $this->docsEndpoint,
                 defaults: ['_controller' => 'api_route.openapi_controller'],
                 methods: ["GET"]
             ));

@@ -33,13 +33,12 @@ class SwaggerController
         EOT;
 
     public function __construct(
-        private RouterInterface $router,
+        private string $docsEndpoint,
     ){}
 
     public function __invoke(): Response
     {
-        $docsUrl = $this->router->generate("_api_route_openapi_endpoint", [], RouterInterface::ABSOLUTE_URL);
-        return new Response(sprintf(self::SWAGGER_HTML,$docsUrl));
+        return new Response(sprintf(self::SWAGGER_HTML,$this->docsEndpoint));
     }
 
 }

@@ -4,6 +4,12 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services
         http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
+
+        <service id="api_route.api_route_loader" class="Richard87\ApiRoute\Service\ApiRouteLoader" public="true">
+            <argument type="service" id="api_route.find_class_descriptors"/>
+            <tag>routing.loader</tag>
+        </service>
+
         <service id="api_route.openapi_generator" class="Richard87\ApiRoute\Service\OpenApiGenerator" public="true" >
             <argument type="service" id="router"/>
             <argument type="collection"/>
@@ -13,17 +19,10 @@
             <argument type="service" id="api_route.openapi_generator"/>
             <argument type="service" id="event_dispatcher" on-invalid="null" />
         </service>
-        <service id="api_route.swagger_controller" class="Richard87\ApiRoute\Controller\SwaggerController" public="true">
-            <argument type="service" id="router" />
-        </service>
+        <service id="api_route.swagger_controller" class="Richard87\ApiRoute\Controller\SwaggerController" public="true" />
+        <service id="api_route.find_class_descriptors" class="Richard87\ApiRoute\Service\FindClassDescriptors" />
 
-        <service id="api_route.find_class_descriptors" class="Richard87\ApiRoute\Service\FindClassDescriptors">
-        </service>
-        <service id="api_route.api_route_loader" class="Richard87\ApiRoute\Service\ApiRouteLoader">
-            <argument type="service" id="api_route.find_class_descriptors"/>
-            <tag>routing.loader</tag>
-        </service>
-
+        <service id="Richard87\ApiRoute\Service\ApiRouteLoader" alias="api_route.api_route_loader" public="false" />
         <service id="Richard87\ApiRoute\Service\OpenApiGenerator" alias="api_route.openapi_generator" public="false" />
     </services>
 </container>
