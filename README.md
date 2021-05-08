@@ -1,5 +1,41 @@
-<?php
+# ApiRoute
 
+A simplified version if ApiPlatform to generate flexible api rotues and automatically infer types for OpenAPI v3.
+
+Limited to only (automatically) serializing `jsonld`. But because of the limited scope, we can be way more flexible with how and where we use the annotation `#[ApiRoute]`.
+
+For version 1.0 we are tightly integrated with Symfony and Doctrine to limit scope and make it as easy to program as possible.
+
+This library provides 3 base annotations: 
+- `#[ApiRoute]` - Creates a route and automatic serializes and deserializes requests and responses.
+- `#[ApiResource]` - Tells ApiRoute that this is a entity with it's own ID.
+- `#[Property]` - Tells ApiRoute which properties the user is allowed to read and write.
+
+Extended RESTful Annotations to simplify API development:
+- `#[Rest\Get)]`
+- `#[Rest\Create]`
+- `#[Rest\Update]`
+- `#[Rest\Delete]`
+- `#[Rest\Collection)]`
+
+A basic route looks like this: `#[ApiRoute(input: ResetPassword::class, output: User::class, controller: RestPasswordController::class)]`.
+If you omit `controller:` but have a `input:` we assume it's a Symfony Messenger event and dispatches it accordingly. 
+
+Other events is handled "predictably", you can not use `input` or `output` when using ApiRoute on a `property`, but you could use `input` when setting it on a `method`.
+
+To simplify things we include a few *special* variables that can be used in controllers or methods:
+- `UserInterface $loggedInUser` gives you the logged in user. If it's not nullable and the user is not logged in, a AccessDenied exception is thrown.
+- `RequestInterface $request` gives you the symfony Request object.
+
+The entity manager is flushed after each request, unless `#[ApiRoute(flush: false)]` is set.
+
+
+## Future scope
+Hopefully in version 2.0 we can expand the scope with more integration with Laravel and other ORMs. 
+
+## Examples:
+Example:
+```php
 namespace Richard87\ApiRoute\Tests\resources\src\Entity;
 
 use Richard87\ApiRoute\Tests\resources\src\Controller\FetchImportantMessagesController;
@@ -145,3 +181,17 @@ class User
         return $this->createdAt;
     }
 }
+```
+### Create new message
+```http request
+POST /api/messages/
+Content-Type: application/json
+accept: application/ld+json
+
+{
+    "user": "/api/users/1",
+    "subject": "Do you want to be friends?",
+    "content": "Hello world!"
+}
+
+```

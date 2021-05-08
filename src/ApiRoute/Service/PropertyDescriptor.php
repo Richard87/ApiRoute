@@ -58,7 +58,7 @@ class PropertyDescriptor
     public function getSchema(): array {
         $schema = [
             "nullable" => $this->nullable,
-            "type" => $this->type,
+            "type" => $this->getType(),
         ];
 
         if ($this->isReadOnly()) {
@@ -70,6 +70,74 @@ class PropertyDescriptor
 
         return $schema;
     }
+
+    protected function getType(): array|string {
+        // Todo: If target is custom ojbect, create Ref / else create schema
+        return $this->type;
+    }
+    private function generateSchema(array $schema, string $class, bool $void, bool $nullable, array &$refs): array
+    {
+        if (str_starts_with($class, "?")) {
+            $nullable = true;
+            $class    = substr($class, 1);
+        }
+
+        if ($class === "null" || $class === "void" || $class === "false") {
+            $void = true;
+        }
+
+        if ($void) {
+            $schema["responses"]["200"] = ['description' => 'Ok'];
+        } elseif ($class === \DateTime::class) {
+            $schema["responses"]["200"] = $this->createResponseSchema("date-time", "1985-04-12T23:20:50.52Z", $nullable);
+        } elseif ($class === "string") {
+            $schema["responses"]["200"] = $this->createResponseSchema("string", "Some text", $nullable);
+        } elseif ($class === "bool") {
+            $schema["responses"]["200"] = $this->createResponseSchema("boolean", "true", $nullable);
+        } elseif ($class === "float") {
+            $schema["responses"]["200"] = $this->createResponseSchema("number", "5.0", $nullable);
+        } elseif ($class === "int") {
+            $schema["responses"]["200"] = $this->createResponseSchema("number", "5", $nullable);
+        } elseif ($class === "object") {
+            $schema["responses"]["200"] = $this->createResponseSchema("string", "", $nullable);
+        } elseif ($class === "mixed") {
+            $schema["responses"]["200"] = $this->createResponseSchema("string", "", $nullable);
+        } elseif ($class === "void") {
+            $schema["responses"]["201"] = $this->createResponseSchema("array", "", $nullable);
+        } elseif ($class === "array") {
+            $schema["responses"]["200"] = $this->createResponseSchema("array", "", $nullable);
+        } else {
+            $ref                        = OpenApiGenerator::ConvertClassToRef($class);
+            $schema["responses"]["200"] = ['description' => 'Resource', "content" => ['application/json' => ['schema' => ['$ref' => $ref]]]];
+            $refs[$ref]                 = $class;
+        }
+        return $schema;
+    }
+    protected function createResponseSchema(string $type, string $example, bool $nullable = false): array
+    {
+        $schema = [
+            "200" => [
+                'description' => 'Results',
+                "content"     => [
+                    'application/json' => [
+                        'schema' => [
+                            "type"    => $type,
+                            "example" => $example,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        if ($nullable) {
+            $schema["202"] = [
+                'description' => 'Accepted',
+            ];
+        }
+
+        return $schema;
+    }
+
 
     protected function isReadOnly(): bool
     {

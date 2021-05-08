@@ -2,6 +2,7 @@
 
 namespace Richard87\ApiRoute\Tests\resources\src\Entity;
 
+use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Attributes\Rest;
 use Richard87\ApiRoute\Attributes\Property;
 use Doctrine\ORM\Mapping as ORM;
@@ -11,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Table(name="messages")
  */
 #[Rest\Get]
+#[ApiResource(summary: "PM for users")]
 class Message
 {
     /**

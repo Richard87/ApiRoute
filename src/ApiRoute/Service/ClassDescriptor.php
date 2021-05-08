@@ -5,17 +5,17 @@ namespace Richard87\ApiRoute\Service;
 
 use Richard87\ApiRoute\Attributes\ApiRoute;
 use Richard87\ApiRoute\Attributes\CollectionRoute;
-use Richard87\ApiRoute\Attributes\Description;
+use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Attributes\Property;
 
 class ClassDescriptor
 {
-    /** @var ActionDescriptor[] */
+    /** @var ApiRoute[] */
     public array $actions = [];
     /** @var PropertyDescriptor[] */
     public array $properties = [];
 
-    public Description $description;
+    public ApiResource $description;
     public string $name;
     private string $class;
     private \ReflectionClass $reflection;
@@ -33,54 +33,44 @@ class ClassDescriptor
     public function __construct(string $class) {
         $this->class = $class;
         $this->reflection = new \ReflectionClass($class);
-        $descriptionList = $this->reflection->getAttributes(Description::class);
+        $descriptionList = $this->reflection->getAttributes(ApiResource::class);
         $descriptionAttr = $descriptionList[0] ?? null;
-        $this->description = $descriptionAttr ? $descriptionAttr->newInstance() : new Description();
+        $this->description = $descriptionAttr ? $descriptionAttr->newInstance() : new ApiResource();
         $this->name = FormatName::format($this->reflection->getShortName(), true);
 
-        $classAttributes = $this->reflection->getAttributes();
+        $classAttributes = $this->reflection->getAttributes(ApiRoute::class,\ReflectionAttribute::IS_INSTANCEOF);
         foreach ($classAttributes as $attribute) {
+            /** @var ApiRoute $instance */
             $instance = $attribute->newInstance();
-            if ($instance instanceof ApiRoute) {
-                $this->actions[] = ActionDescriptor::FromClass($instance, $this);
-            }
+            $instance->withClass($this->reflection, $this);
+            $this->actions[] = $instance;
         }
 
         foreach ($this->reflection->getProperties() as $reflProp){
-            foreach ($reflProp->getAttributes() as $attribute) {
+            foreach ($reflProp->getAttributes(ApiRoute::class,\ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+                /** @var ApiRoute $instance */
                 $instance = $attribute->newInstance();
-                if ($instance instanceof Property) {
-                    $this->properties[] = PropertyDescriptor::FromProperty($instance, $reflProp);
+
+                if ($instance instanceof CollectionRoute) {
+                    $instance->isItemOperation = true;
                 }
-
-                if ($instance instanceof ApiRoute) {
-
-                    if ($instance  instanceof CollectionRoute) {
-                        $instance->isItemOperation = true;
-                    }
-
-                    $this->actions[] = ActionDescriptor::FromProperty($instance, $this,$reflProp);
-                }
+                $instance->withProperty($reflProp, $this);
+                $this->actions[] = $instance;
             }
         }
 
         foreach ($this->reflection->getMethods() as $reflectionMethod){
-            foreach ($reflectionMethod->getAttributes() as $attribute) {
+            foreach ($reflectionMethod->getAttributes(ApiRoute::class,\ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+                /** @var ApiRoute $instance */
                 $instance = $attribute->newInstance();
-                if ($instance instanceof Property) {
-                    $this->properties[] = PropertyDescriptor::FromMethod($instance, $reflectionMethod);
+
+                if ($instance instanceof CollectionRoute) {
+                    $instance->isItemOperation = true;
                 }
 
-                if ($instance instanceof ApiRoute) {
-                    /** @var ApiRoute $instance */
-                    $instance = $attribute->newInstance();
+                $instance->withMethod($reflectionMethod,$this);
+                $this->actions[] = $instance;
 
-                    if ($instance instanceof CollectionRoute) {
-                        $instance->isItemOperation = true;
-                    }
-
-                    $this->actions[] = ActionDescriptor::FromMethod($instance, $this,$reflectionMethod);
-                }
             }
         }
     }
@@ -90,11 +80,6 @@ class ClassDescriptor
         return $this->name;
     }
 
-    public function getRef(): string
-    {
-        return self::ConvertClassToRef($this->getClass());
-    }
-
     public function getClass(): string {
         return $this->class;
     }
@@ -102,10 +87,5 @@ class ClassDescriptor
     public function hasActions(): bool
     {
         return count($this->actions) > 0;
-    }
-
-    public static function ConvertClassToRef(string $class): string {
-        $ref = str_replace("/", "_", $class);
-        return strtolower("api_". $ref);
     }
 }
