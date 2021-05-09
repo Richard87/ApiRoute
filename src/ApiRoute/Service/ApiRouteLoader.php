@@ -18,12 +18,6 @@ use Symfony\Component\Config\Loader\Loader;
 
 class ApiRouteLoader extends Loader
 {
-    public const REQUEST_BODY = "_api_route_request_body_class";
-    public const RESPONSE_BODY = "_api_route_response_body_class";
-    public const ROUTE_ATTR = "_api_route_route";
-    public const TAG_NAME = "_api_route_tag_name";
-    public const SUMMARY = "_api_route_summary";
-    const SYMFONY_CONTROLLER = '_controller';
     private bool $isLoaded = false;
 
     public function __construct(
@@ -33,8 +27,7 @@ class ApiRouteLoader extends Loader
         private bool $enableSwagger,
         private string $projectDir,
     )
-    {
-    }
+    {}
 
     public function load($path, string $type = null): RouteCollection
     {
@@ -60,12 +53,9 @@ class ApiRouteLoader extends Loader
             }
         }
 
-
-        $classes = $this->findClassDescriptors->findAttributes($dir);
-        foreach ($classes as $class) {
-            foreach ($class->actions as $action) {
-                $routeCollection->add($action->getPathName(), $this->createRoute($action));
-            }
+        $actions = $this->findClassDescriptors->findAttributes($dir);
+        foreach ($actions as $action) {
+            $routeCollection->add($action->getPathName(), $action->createRoute($this->basePath));
         }
 
         return $routeCollection;
@@ -74,28 +64,5 @@ class ApiRouteLoader extends Loader
     public function supports($resource, string $type = null): bool
     {
         return $type === "api_route";
-    }
-
-    private function createRoute(ApiRoute $apiRoute): Route
-    {
-        $routeRequirements = []; // List of required route parameters
-
-        if ($apiRoute->isItemOperation) {
-            $routeRequirements['id'] = "\d+"; //TODO: Introspect this information from Class Resource!
-        }
-
-        return new Route(
-            $apiRoute->getPath(),
-            defaults: [
-            self::SYMFONY_CONTROLLER    => $apiRoute->getController(),
-            self::ROUTE_ATTR    => true,
-            self::REQUEST_BODY  => $apiRoute->getRequestBody(),
-            self::RESPONSE_BODY => $apiRoute->getResponseBody(),
-            self::TAG_NAME      => $apiRoute->descriptor->getName(),
-            self::SUMMARY       => $apiRoute->descriptor->description->summary,
-            ],
-            requirements: $routeRequirements,
-            methods: [$apiRoute->method],
-        );
     }
 }

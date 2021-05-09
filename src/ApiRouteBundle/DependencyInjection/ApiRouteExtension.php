@@ -25,11 +25,11 @@ class ApiRouteExtension extends Extension
         if (str_ends_with($basePath,"/")) {
             $basePath = substr($basePath, 0, -1);
         }
+
         $docsEndpoint = $basePath . "/docs.json";
 
         $definition = $container->getDefinition("api_route.openapi_generator");
         $definition->setArgument('$info', $config['openapi']);
-        $definition->setArgument('$basePath', $basePath);
 
         $definition = $container->getDefinition("api_route.api_route_loader");
         $definition->setArgument('$basePath', $basePath);

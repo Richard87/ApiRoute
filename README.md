@@ -29,6 +29,20 @@ To simplify things we include a few *special* variables that can be used in cont
 
 The entity manager is flushed after each request, unless `#[ApiRoute(flush: false)]` is set.
 
+## Todo
+- [ ] Generate proper OpenAPI 3.0 Spec
+  - [X] Find all endpoints / generate URL's
+  - [X] Map all Resources /DTOs
+  - [ ] Inspect arrays/collection and find correct target object / generics
+  - [ ] Map IRI's / If property is ApiResource use IRI
+  - [ ] Custom object serialization (iri's, uuid's, datetime's, collections)
+- [ ] Handle requests in controller
+- [ ] Deserialize requests and map arguments
+- [ ] Serialize responses
+- [ ] Flush changes
+- [ ] Add cache-warmer for OpenAPI spec
+- [ ] Handle security, add Default property read/write security rules, default ApiRoute security rules
+
 
 ## Future scope
 Hopefully in version 2.0 we can expand the scope with more integration with Laravel and other ORMs. 

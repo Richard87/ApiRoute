@@ -5,9 +5,6 @@ namespace Richard87\ApiRoute\Service;
 
 
 use ReflectionAttribute;
-use Richard87\ApiRoute\Attributes\ApiRoute;
-use Richard87\ApiRoute\Attributes\CollectionRoute;
-use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Attributes\Property;
 
 class PropertyMapperService
@@ -36,6 +33,20 @@ class PropertyMapperService
                 $instance = $attribute->newInstance();
                 $properties[] = PropertyDescriptor::FromMethod($instance, $reflectionMethod);
             }
+        }
+
+        // Return all properties if class has 0 properties
+        if (count($properties) === 0)
+            return $this->mapAllProperties($reflection);
+
+        return $properties;
+    }
+
+    private function mapAllProperties(\ReflectionClass $reflection): array
+    {
+        $properties = [];
+        foreach ($reflection->getProperties() as $reflProp){
+            $properties[] = PropertyDescriptor::fromProperty(new Property(), $reflProp);
         }
 
         return $properties;

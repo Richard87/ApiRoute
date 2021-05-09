@@ -4,6 +4,7 @@
 namespace Richard87\ApiRoute\Attributes\Rest;
 
 
+use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Controller\RestActions\DeleteAction;
 use Richard87\ApiRoute\Attributes\ApiRoute;
 
@@ -20,14 +21,6 @@ class Delete extends ApiRoute
             path: "",
             security: $this->security,
         );
-    }
-
-    public function getPath(string $basePath): string {
-        $url = $basePath;
-        if (str_ends_with($url, "/")) {
-            $url = substr($url, 0, -1);
-        }
-
-        return "$url/{id}";
+        $this->isItemOperation = true;
     }
 }

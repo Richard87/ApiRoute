@@ -12,6 +12,7 @@
 
         <service id="api_route.openapi_generator" class="Richard87\ApiRoute\Service\OpenApiGenerator" public="true" >
             <argument type="service" id="router"/>
+            <argument type="service" id="api_route.property_mapper_Service"/>
             <argument type="collection"/>
         </service>
 
@@ -19,8 +20,12 @@
             <argument type="service" id="api_route.openapi_generator"/>
             <argument type="service" id="event_dispatcher" on-invalid="null" />
         </service>
+        <service id="api_route.property_mapper_Service" class="\Richard87\ApiRoute\Service\PropertyMapperService" public="false"/>
         <service id="api_route.swagger_controller" class="Richard87\ApiRoute\Controller\SwaggerController" public="true" />
-        <service id="api_route.find_class_descriptors" class="Richard87\ApiRoute\Service\FindClassDescriptors" />
+        <service id="api_route.class_descriptor" class="Richard87\ApiRoute\Service\ClassDescriptor" public="false" />
+        <service id="api_route.find_class_descriptors" class="Richard87\ApiRoute\Service\FindClassDescriptors" public="false">
+            <argument type="service" id="api_route.class_descriptor" />
+        </service>
 
         <service id="Richard87\ApiRoute\Service\ApiRouteLoader" alias="api_route.api_route_loader" public="false" />
         <service id="Richard87\ApiRoute\Service\OpenApiGenerator" alias="api_route.openapi_generator" public="false" />

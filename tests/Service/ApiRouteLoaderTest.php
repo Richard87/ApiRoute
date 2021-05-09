@@ -26,6 +26,6 @@ class ApiRouteLoaderTest extends TestCase
 
         self::assertArrayHasKey("_api_route_openapi_endpoint", $routes->all());
         self::assertArrayHasKey("_api_route_swagger_endpoint",$routes->all());
-        self::assertGreaterThan(2, $routes->count());
+        self::assertEquals(15, $routes->count());
     }
 }

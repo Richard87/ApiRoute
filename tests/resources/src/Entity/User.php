@@ -2,12 +2,12 @@
 
 namespace Richard87\ApiRoute\Tests\resources\src\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Richard87\ApiRoute\Tests\resources\src\Controller\FetchImportantMessagesController;
 use Richard87\ApiRoute\Tests\resources\src\Controller\InviteController;
 use Richard87\ApiRoute\Tests\resources\src\Entity\Dto\ResetPassword;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\ORM\PersistentCollection;
 use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Attributes\Property;
 use Richard87\ApiRoute\Attributes\Rest;
@@ -40,14 +40,14 @@ class User
     private ?int $id = null;
 
     /**
-     * @var ArrayCollection<int, Message>|PersistentCollection
+     * @var ArrayCollection<int, Message>|Collection
      * @ORM\OneToMany(targetEntity="Message", cascade={"persist"}, mappedBy="sender")
      *
      * Should create a endpoint like this: GET /api/users/{id}/messages[?onlySent=true|false]
      */
     #[CollectionRoute]
     #[Property]
-    private ArrayCollection|PersistentCollection $messages;
+    private ArrayCollection|Collection $messages;
 
     /**
      * @ORM\Column(type="string")
@@ -101,9 +101,9 @@ class User
 
     /**
      * @param bool $onlySent
-     * @return ArrayCollection<int, Message>|PersistentCollection
+     * @return ArrayCollection<int, Message>|Collection
      */
-    public function getMessages(bool $onlySent = false): ArrayCollection|PersistentCollection
+    public function getMessages(bool $onlySent = false): ArrayCollection|Collection
     {
         if ($onlySent) {
             return $this->messages->filter(fn(Message $m) => $m->isSent());

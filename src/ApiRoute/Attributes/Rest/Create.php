@@ -3,6 +3,7 @@
 
 namespace Richard87\ApiRoute\Attributes\Rest;
 
+use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Attributes\ApiRoute;
 use Richard87\ApiRoute\Controller\RestActions\CreateAction;
 
@@ -16,10 +17,15 @@ class Create extends ApiRoute
     ){
         parent::__construct(
             input: $this->input,
-            output: $this->controller ?? CreateAction::class,
             controller: $this->controller ?? CreateAction::class,
             path: "",
             security: $this->security,
         );
+    }
+
+    public function withClass(\ReflectionClass $class, ?ApiResource $descriptor): void
+    {
+        $this->output = $class->getName();
+        parent::withClass($class, $descriptor);
     }
 }

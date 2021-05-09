@@ -3,6 +3,7 @@
 
 namespace Richard87\ApiRoute\Attributes\Rest;
 
+use Richard87\ApiRoute\Attributes\ApiResource;
 use Richard87\ApiRoute\Controller\RestActions\GetAction;
 use Richard87\ApiRoute\Attributes\ApiRoute;
 
@@ -19,5 +20,11 @@ class Get extends ApiRoute
             path: "",
             security: $this->security,
         );
+    }
+
+    public function withClass(\ReflectionClass $class, ?ApiResource $descriptor): void
+    {
+        $this->output = $class->getName();
+        parent::withClass($class, $descriptor);
     }
 }

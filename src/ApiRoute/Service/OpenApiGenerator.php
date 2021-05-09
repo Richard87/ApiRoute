@@ -4,14 +4,9 @@
 namespace Richard87\ApiRoute\Service;
 
 
+use Doctrine\Common\Collections\Collection;
 use Richard87\ApiRoute\Attributes\ApiRoute;
-use Richard87\ApiRoute\Controller\MessengerActionController;
-use Richard87\ApiRoute\Controller\RestActions\CollectionAction;
-use Richard87\ApiRoute\Controller\RestActions\CreateAction;
-use Richard87\ApiRoute\Controller\RestActions\DeleteAction;
-use Richard87\ApiRoute\Controller\RestActions\GetAction;
-use Richard87\ApiRoute\Controller\RestActions\UpdateAction;
-use Symfony\Component\Config\Loader\DelegatingLoader;
+use Richard87\ApiRoute\Exceptions\ApiException;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -21,7 +16,6 @@ class OpenApiGenerator
         private RouterInterface $router,
         private PropertyMapperService $propertyMapper,
         private array $info,
-        private string $basePath
     ){}
 
     public function getDefinition(): array
@@ -33,45 +27,45 @@ class OpenApiGenerator
         $outputs = [];
         $inputs = [];
         foreach ($routeCollection->all() as $routeName => $route) {
-            if (!$route->getDefault(ApiRouteLoader::ROUTE_ATTR)) {
+            $apiRoute = $route->getDefault(ApiRoute::ROUTE_ATTR);
+            if (!$apiRoute instanceof ApiRoute)
                 continue;
-            }
 
-            if ($output = $route->getDefault(ApiRouteLoader::RESPONSE_BODY))
+
+            if ($output = $apiRoute->getResponseBody())
                 $outputs[] = $output;
-            if ($input = $route->getDefault(ApiRouteLoader::REQUEST_BODY))
+            if ($input = $apiRoute->getRequestBody())
                 $inputs[] = $input;
 
             $path = $route->getPath();
             $method = strtolower($route->getMethods()[0]);
-            $paths[$path][$method] = $this->createSchema($routeName, $route);
+            $paths[$path][$method] = $this->createOperationSchema($routeName, $route, $apiRoute);
         }
 
-        $components = $this->mapProperties($inputs, $outputs);
-
+        $classes    = array_unique([...$inputs, ...$outputs]);
+        $components = [];
+        foreach ($classes as $class) {
+            $ref = self::ConvertClassToRef($class);
+            $components[$ref] = $this->mapProperties($class);
+        }
         return [
             "openapi" => "3.0.0",
-            "basePath" => $this->basePath,
             "info" => $this->info,
-            "version" => "3",
             "paths" => $paths,
-            "components" => [
-                "schemas" => $components,
-            ],
+            "components" => ["schemas" => $components],
         ];
     }
 
-    private function createSchema(string $routeName, Route $route): array
+    private function createOperationSchema(string $routeName, Route $route, ApiRoute $apiRoute): array
     {
-        $input = $route->getDefault(ApiRouteLoader::REQUEST_BODY);
-        $output = $route->getDefault(ApiRouteLoader::RESPONSE_BODY);
-        $controller = $route->getDefault(ApiRouteLoader::SYMFONY_CONTROLLER);
+        $input = $apiRoute->getRequestBody();
+        $output = $apiRoute->getResponseBody();
 
         $schema = [
             "operationId" => $routeName,
-            "tags"        => [$route->getDefault(ApiRouteLoader::TAG_NAME)], //TODO: Possibly add input and output her as well...
+            "tags"        => $apiRoute->getTags(),
             "responses"   => ["404" => ['description' => 'Resource not found']],
-            "summary"     => $route->getDefault(ApiRouteLoader::SUMMARY),
+            "summary"     => $apiRoute->getSummary(),
             "parameters"  => [],
         ];
         foreach ($route->getRequirements() as $name => $regex) {
@@ -79,7 +73,20 @@ class OpenApiGenerator
                 'name'     => $name,
                 'in'       => 'path',
                 'required' => true,
-                'schema'   => ['type' => 'string'],
+                'schema'   => ['type' => 'string', 'pattern' => $regex],
+            ];
+        }
+
+        foreach ($apiRoute->getQueryParameters() as $name => $type) {
+            $optional = str_starts_with($type,"?");
+            if ($optional)
+                $type = substr($type,1);
+
+            $schema['parameters'][] = [
+                'name'     => $name,
+                'in'       => 'query',
+                'required' => !$optional,
+                'schema'   => self::mapStringType($type),
             ];
         }
 
@@ -89,65 +96,109 @@ class OpenApiGenerator
             if ($optional)
                 $class = substr($class,1);
 
-            $ref = self::ConvertClassToRef($class);
-            $schema['requestBody']['content']['application/ld+json']['schema']['$ref'] = $ref;
+            $ref ="#/components/schemas/" . self::ConvertClassToRef($class);
+            $schema['requestBody']['content'][$apiRoute->getContentType()]['schema']['$ref'] = $ref;
         }
 
-        $isMessage = $input && in_array(MessengerActionController::class, class_parents($controller));
-        $isDelete  = $route->getMethods()[0] === "delete";
+        $schema["responses"]["$apiRoute->statusCode"]['description'] = match ($apiRoute->statusCode) {
+            201 => 'Resource created',
+            202 => "Resource queued",
+            204 => "Resource deleted",
+            default => 'Success',
+        };
 
-        $content = null;
         if ($output) {
-            $content = ['application/ld+json' => ['schema' => ['$ref' => self::ConvertClassToRef($output)]]];
+            $ref =  self::ConvertClassToRef($output);
+            $schema["responses"]["$apiRoute->statusCode"]['content'] = [
+                'application/ld+json' => ['schema' => ['$ref' => "#/components/schemas/$ref"]]
+            ];
         }
+        return $schema;
+    }
 
-        //TODO Move status code to ApiRoute
-        if ($isMessage && !$output) {
-            $schema["responses"]["202"] = ['description' => 'Resource queued'];
-        } elseif ($isDelete && !$output) {
-            $schema["responses"]["204"] = ['description' => 'Resource deleted'];
-        } elseif ($isDelete && $output) {
-            $schema["responses"]["202"] = ['description' => 'Resource deleted', "content" => $content];
-        } elseif ($output) {
-            $schema["responses"]["201"] = ['description' => 'Resource created', "content" => $content];
-        } elseif ($input) {
-            $schema["responses"]["201"] = ['description' => 'Success'];
-        } else {
-            $schema["responses"]["200"] = ['description' => 'Success'];
+    private function mapProperties(string $class): array
+    {
+        $schema = [
+            'type'       => "object",
+            'properties' => [
+                "@id" => [
+                    "readOnly" => true,
+                    "type"     => "string",
+                ],
+            ],
+        ];
+
+        $propertyDescriptors = $this->propertyMapper->findProperties($class);
+        foreach ($propertyDescriptors as $property) {
+            $schema['properties'][$property->getName()] = $property->getSchema();
         }
 
         return $schema;
     }
 
     public static function ConvertClassToRef(string $class): string {
-        $ref = str_replace("/", "_", $class);
-        return strtolower("api_". $ref);
+        $ref = str_replace(["/", "\\"], "_", $class);
+        $ref = strtolower($ref);
+        return $ref;
     }
 
-    private function mapProperties(array $inputs, array $outputs): array
-    {
-        $components = [];
-        $arr        = array_unique([...$inputs, ...$outputs]);
-        foreach ($arr as $class) {
-            $schema = [
-                'type'       => "object",
-                'properties' => [
-                    "@id" => [
-                        "readOnly" => true,
-                        "type"     => "string",
-                    ],
-                ],
-            ];
-
-            //TODO: Load all properties if empty (DTO)
-            $propertyDescriptors = $this->propertyMapper->findProperties($class);
-            foreach ($propertyDescriptors as $property) {
-                $schema['properties'][$property->getName()] = $property->getSchema();
-            }
-
-            $ref              = self::ConvertClassToRef($class);
-            $components[$ref] = $schema;
+    public static function mapStringType(string $type, bool $nullable = false) : array {
+        if (str_starts_with($type,"?")) {
+            $nullable = true;
+            $type = substr($type, 1);
         }
-        return $components;
+
+        return match ($type) {
+            \DateTime::class,"DateTime",\DateTimeImmutable::class, \DateTimeInterface::class => ["type" => "string", "example" => "1985-04-12T23:20:50.52Z", "nullable" => $nullable],
+            "string" => ["type" => "string", "nullable" => $nullable],
+            "bool" => ['type' => "string", "example" => "true", "nullable" => $nullable],
+            "float" => ['type' => "string", "example" => "1.0", "nullable" => $nullable],
+            "int" => ['type' => "string", "example" => "1", "nullable" => $nullable],
+            default => throw new ApiException("Illigal type '$type', must be serializable to string")
+        };
+    }
+
+    public static function mapComplexType(string $type, bool $nullable = false): array {
+        if (str_starts_with($type,"?")) {
+            $nullable = true;
+            $type = substr($type, 1);
+        }
+        if (str_contains($type,"|")) {
+            $types = explode("|", $type);
+            if (in_array("null",$types))
+                $nullable = true;
+            return self::mapComplexType($types[0] ?? "mixed", $nullable);
+        }
+
+        $schema = match ($type) {
+            \DateTime::class, "DateTime", \DateTimeImmutable::class, \DateTimeInterface::class => ["type" => "string", "example" => "1985-04-12T23:20:50.52Z"],
+            "string" => ["type" => "string"],
+            "bool" => ['type' => "string", "example" => true],
+            "float" => ['type' => "string", "example" => "1.0"],
+            "int" => ['type' => "string", "example" => 1],
+            "null" => ['type' => 'null'],
+            default => null
+        };
+
+        if (!$schema && ($type === "array" || in_array(Collection::class, class_implements($type)))) {
+            //TODO: Try to find out specific type
+            $schema = ["type" => "array", 'items' => ['type' => 'string']];
+        }
+
+        if ($schema) {
+            if ($nullable)
+                $schema['nullable'] = true;
+
+            return $schema;
+        }
+
+
+        //TODO: Make sure this $ref is mapped
+        $ref = self::ConvertClassToRef($type);
+        $schema = ['$ref' => "#/components/schemas/$ref"];
+        if ($nullable)
+            $schema['nullable'] = true;
+
+        return $schema;
     }
 }

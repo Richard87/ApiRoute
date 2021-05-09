@@ -4,26 +4,42 @@
 namespace Richard87\ApiRoute\Service;
 
 
+use Richard87\ApiRoute\Attributes\ApiRoute;
+
 class FindClassDescriptors
 {
+    public function __construct(
+        private ClassDescriptor $classDescriptor
+    ){}
+
+    /**
+     * @param string|array $path
+     * @return ApiRoute[]
+     */
+    public function findAttributes(string|array $path): array
+    {
+        if (is_array($path)) {
+            $results = array_map([$this,'findAttributesInPath'], $path);
+            return array_merge(...$results);
+        }
+
+        return $this->findAttributesInPath($path);
+    }
+
     /**
      * @param string $path
-     * @return ClassDescriptor[]
+     * @return ApiRoute[]
      */
-    public function findAttributes(string $path): array
+    private function findAttributesInPath(string $path): array
     {
+        $apiRoutes = [];
 
-        $it = new \RecursiveDirectoryIterator($path, \FilesystemIterator::KEY_AS_PATHNAME | \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS);
+        $it    = new \RecursiveDirectoryIterator($path, \FilesystemIterator::KEY_AS_PATHNAME | \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS);
         $files = new \RecursiveIteratorIterator($it, \RecursiveIteratorIterator::CHILD_FIRST);
 
-        $results = [];
         /** @var \SplFileInfo $fileInfo */
         foreach ($files as $path => $fileInfo) {
-            if ($fileInfo->isDir()) {
-                continue;
-            }
-
-            if ($fileInfo->getExtension() !== "php") {
+            if ($fileInfo->isDir() || $fileInfo->getExtension() !== "php") {
                 continue;
             }
 
@@ -32,15 +48,9 @@ class FindClassDescriptors
                 continue;
             }
 
-            $classDescriptor = new ClassDescriptor($class);
-            if (!$classDescriptor->hasActions()) {
-                continue;
-            }
-
-            $results[] = $classDescriptor;
+            $apiRoutes[] = $this->classDescriptor->mapClass($class);
         }
-
-        return $results;
+        return array_merge(...$apiRoutes);
     }
 
     /**

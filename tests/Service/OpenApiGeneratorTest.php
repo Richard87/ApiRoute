@@ -29,6 +29,8 @@ class OpenApiGeneratorTest extends TestCase
 
         $schema = $this->openApi->getDefinition();
 
+        echo json_encode($schema);
+
         self::assertNotEmpty($schema);
     }
 }
