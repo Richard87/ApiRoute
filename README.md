@@ -33,8 +33,8 @@ The entity manager is flushed after each request, unless `#[ApiRoute(flush: fals
 - [ ] Generate proper OpenAPI 3.0 Spec
   - [X] Find all endpoints / generate URL's
   - [X] Map all Resources /DTOs
-  - [ ] Inspect arrays/collection and find correct target object / generics
   - [ ] Map IRI's / If property is ApiResource use IRI
+  - [ ] Inspect arrays/collection and find correct target object / generics, generate HydraCollection schema
   - [ ] Custom object serialization (iri's, uuid's, datetime's, collections)
 - [ ] Handle requests in controller
 - [ ] Deserialize requests and map arguments
